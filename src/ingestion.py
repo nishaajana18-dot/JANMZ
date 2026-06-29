@@ -4,12 +4,16 @@ import json
 import re
 from pathlib import Path
 
-import fitz
 import pandas as pd
 from PIL import Image
 
 from src.config import settings
 from src.models import Evidence, ParsedContent, Source
+
+try:
+    import fitz
+except ImportError:  # pragma: no cover - depends on local environment
+    fitz = None
 
 
 def save_uploaded_file(project_id: str, uploaded_file) -> Path:
@@ -51,12 +55,16 @@ def parse_source(project_id: str, source: Source) -> ParsedContent:
 
 
 def extract_pdf_text(path: Path) -> str:
+    if fitz is None:
+        raise ImportError("PyMuPDF is required to ingest PDF files. Install it from requirements.txt.")
     with fitz.open(path) as document:
         pages = [page.get_text("text") for page in document]
     return "\n\n".join(page.strip() for page in pages if page.strip())
 
 
 def count_pdf_pages(path: Path) -> int:
+    if fitz is None:
+        raise ImportError("PyMuPDF is required to ingest PDF files. Install it from requirements.txt.")
     with fitz.open(path) as document:
         return len(document)
 

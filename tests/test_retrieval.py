@@ -2,11 +2,9 @@ from src.models import Evidence
 from src.retrieval import EvidenceIndex
 
 
-def test_search_returns_ranked_results(tmp_path, monkeypatch) -> None:
-    from src.config import settings
-
-    monkeypatch.setattr(settings, "vector_dir", tmp_path)
+def test_search_returns_ranked_results(tmp_path) -> None:
     index = EvidenceIndex("project-1")
+    index.index_path = tmp_path / "project-1_tfidf.json"
     evidence = [
         Evidence(
             project_id="project-1",
