@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.research_catalog import HYPOTHESIS_LENSES, QUESTION_LENSES, RESEARCH_AREAS
+from src.research_catalog import (
+    HYPOTHESIS_LENSES,
+    QUESTION_LENSES,
+    branch_names,
+    questions_for_branch,
+    topics_for_branch,
+)
 from src.resources import fetch_research_resources
 from src.synthesis import brainstorm_ideas
 
@@ -17,16 +23,20 @@ with st.sidebar:
     st.page_link("app.py", label="Main Workflow")
     st.page_link("pages/1_Brainstorming_Studio.py", label="Brainstorming Studio")
 
-area_names = list(RESEARCH_AREAS.keys())
-selected_area = st.selectbox("Research area", area_names)
-topic_options = RESEARCH_AREAS[selected_area]
+selected_area = st.selectbox("Branch of science", branch_names())
+topic_options = topics_for_branch(selected_area)
+question_options = questions_for_branch(selected_area)
 
 with st.form("brainstorm_form"):
     col1, col2 = st.columns(2)
     with col1:
-        topic = st.selectbox("Possible question area", topic_options)
-        custom_topic = st.text_input("Or type a custom topic")
-        goal = st.text_area("What do you want to discover or improve?")
+        topic = st.selectbox("Topic within this branch", topic_options)
+        selected_question = st.selectbox(
+            "Possible question within this branch",
+            question_options,
+        )
+        custom_topic = st.text_input("Optional narrower topic")
+        goal = st.text_area("What do you want to discover or improve?", value=selected_question)
         constraints = st.text_area("What constraints matter right now?")
     with col2:
         available_inputs = st.text_area(

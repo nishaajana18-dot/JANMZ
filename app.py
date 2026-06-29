@@ -18,7 +18,13 @@ from src.models import (
     ResearchQuestion,
     Source,
 )
-from src.research_catalog import HYPOTHESIS_LENSES, QUESTION_LENSES, RESEARCH_AREAS
+from src.research_catalog import (
+    HYPOTHESIS_LENSES,
+    QUESTION_LENSES,
+    branch_names,
+    questions_for_branch,
+    topics_for_branch,
+)
 from src.ranking import rank_hypotheses
 from src.retrieval import EvidenceIndex
 from src.synthesis import (
@@ -88,13 +94,17 @@ st.header("Step 1: Research Intake")
 with st.form("research_intake"):
     col1, col2 = st.columns(2)
     with col1:
-        area_names = list(RESEARCH_AREAS.keys())
-        selected_area = st.selectbox("Research area", area_names)
-        branch = st.text_input("Branch of science", value=selected_area)
-        topic_options = RESEARCH_AREAS[selected_area]
+        selected_area = st.selectbox("Branch of science", branch_names())
+        branch = selected_area
+        topic_options = topics_for_branch(selected_area)
         suggested_topic = st.selectbox("Suggested topic menu", topic_options)
         topic = st.text_input("Specific topic", value=suggested_topic)
-        problem = st.text_area("Research problem")
+        question_options = questions_for_branch(selected_area)
+        suggested_problem = st.selectbox(
+            "Possible question to answer",
+            question_options,
+        )
+        problem = st.text_area("Research problem", value=suggested_problem)
         goal = st.text_area("What do you want to discover or solve?")
     with col2:
         data = st.text_area("Available data")
