@@ -10,7 +10,7 @@ research intake + uploaded files + notes -> extracted evidence -> gaps -> resear
 
 ### Intake
 
-`app.py` collects the research brief and stores it as a `ResearchProject`.
+`app.py` collects the research brief and stores it as a `ResearchProject`. Intake uses a cascading science tree so the user chooses a broad field, then a branch, then a subfield, then branch-specific topics and research questions.
 
 ### Upload
 
@@ -60,12 +60,11 @@ The same synthesis layer creates:
 
 ### Brainstorming Studio
 
-The multipage Streamlit setup adds a dedicated brainstorming page for early-stage ideation.
+The Streamlit app includes a Brainstorming Studio tab for early-stage ideation.
 
 It provides:
 
-- research area dropdowns
-- topic suggestion menus
+- cascading field, branch, subfield, topic, and question dropdowns
 - question-framing lenses
 - lighter-input idea generation
 - optional live resource lookup from arXiv and Crossref

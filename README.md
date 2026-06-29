@@ -14,7 +14,8 @@ The app is designed for nontechnical researchers and runs end to end even if no 
 - Identifies evidence gaps.
 - Generates research questions and testable hypotheses.
 - Produces more diverse hypothesis types such as mechanistic, comparative, optimization, robustness, and translational ideas.
-- Includes a separate brainstorming page for early-stage idea exploration with lighter input needs.
+- Includes a Brainstorming Studio tab for early-stage idea exploration with lighter input needs.
+- Uses a cascading field selector that narrows from broad science field to branch, subfield, topic, and possible question.
 - Optionally pulls live inspiration links from arXiv and Crossref when internet access is available.
 - Adds clearly labeled synthetic simulation notes to help compare early research directions.
 - Ranks hypotheses and supports human review notes.
@@ -48,9 +49,9 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Streamlit will expose both pages:
+The app opens as one tabbed workspace:
 
-- `Main Workflow`
+- `Project Workflow`
 - `Brainstorming Studio`
 
 ## Add an OpenAI API key
@@ -78,7 +79,7 @@ The demo data is intentionally synthetic and clearly separated from uploaded mat
 6. Gap finding turns limitations and sparse evidence into `GapFinding` records.
 7. Question generation produces `ResearchQuestion` records.
 8. Hypothesis generation produces draft `Hypothesis` records.
-9. Brainstorming Studio can generate lighter-weight research ideas before file-heavy intake.
+9. Brainstorming Studio can generate lighter-weight research ideas before file-heavy intake in the same app.
 10. Ranking orders hypotheses for review.
 11. Export writes JSON and Markdown reports.
 
