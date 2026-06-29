@@ -96,6 +96,7 @@ def build_demo_bundle() -> dict[str, list | ResearchProject]:
         Hypothesis(
             project_id=project.id,
             title="Combined wearable trend improves early detection",
+            hypothesis_type="comparative",
             research_question=questions[0].question,
             hypothesis="If skin temperature and heart-rate drift are modeled together, dehydration risk can be detected earlier than with single-sensor thresholds.",
             rationale="The synthetic pilot suggests the combined trend was more sensitive than isolated alerts.",
@@ -107,6 +108,11 @@ def build_demo_bundle() -> dict[str, list | ResearchProject]:
             novelty_score=0.63,
             testability_score=0.79,
             confidence_score=0.58,
+            assumptions=[
+                "The synthetic signals reflect real-world hydration trends.",
+                "Lead time can be measured consistently across devices.",
+            ],
+            simulation_summary="Synthetic simulation only: the combined-signal scenario outperformed the baseline in most sampled runs.",
             human_review_status="draft",
             rank_score=0.71,
         )

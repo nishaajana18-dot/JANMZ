@@ -13,6 +13,10 @@ The app is designed for nontechnical researchers and runs end to end even if no 
 - Lets you search evidence through a local index.
 - Identifies evidence gaps.
 - Generates research questions and testable hypotheses.
+- Produces more diverse hypothesis types such as mechanistic, comparative, optimization, robustness, and translational ideas.
+- Includes a separate brainstorming page for early-stage idea exploration with lighter input needs.
+- Optionally pulls live inspiration links from arXiv and Crossref when internet access is available.
+- Adds clearly labeled synthetic simulation notes to help compare early research directions.
 - Ranks hypotheses and supports human review notes.
 - Exports the full project as JSON or Markdown.
 - Includes a synthetic demo mode for immediate testing.
@@ -44,6 +48,11 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+Streamlit will expose both pages:
+
+- `Main Workflow`
+- `Brainstorming Studio`
+
 ## Add an OpenAI API key
 
 1. Copy `.env.example` to `.env`.
@@ -69,8 +78,9 @@ The demo data is intentionally synthetic and clearly separated from uploaded mat
 6. Gap finding turns limitations and sparse evidence into `GapFinding` records.
 7. Question generation produces `ResearchQuestion` records.
 8. Hypothesis generation produces draft `Hypothesis` records.
-9. Ranking orders hypotheses for review.
-10. Export writes JSON and Markdown reports.
+9. Brainstorming Studio can generate lighter-weight research ideas before file-heavy intake.
+10. Ranking orders hypotheses for review.
+11. Export writes JSON and Markdown reports.
 
 ## Run tests
 
@@ -84,7 +94,8 @@ pytest
 - Image understanding is metadata-only for now.
 - Evidence extraction is intentionally conservative and rule-based in fallback mode.
 - The app uses a single active project workflow to keep the first version simple.
-- Literature search is not included; the app only works from user-provided files and notes.
+- Live resource lookup depends on internet availability and currently uses lightweight arXiv and Crossref queries rather than a full literature review pipeline.
+- Synthetic simulations are for planning support only and are not substitutes for empirical validation.
 
 ## Future improvements
 
@@ -93,3 +104,4 @@ pytest
 - Add richer provenance display by page number or sheet name.
 - Improve hypothesis editing and comparison workflows.
 - Add stronger contradiction detection and experiment templates.
+- Add user controls for simulation assumptions and effect-size ranges.

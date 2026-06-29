@@ -73,13 +73,18 @@ def export_markdown(
     lines.extend(f"- {question.question}" for question in questions)
     lines.extend(["", "## Ranked Hypotheses"])
     lines.extend(
-        f"- {hypothesis.title}: {hypothesis.hypothesis} "
+        f"- {hypothesis.title} [{hypothesis.hypothesis_type}]: {hypothesis.hypothesis} "
         f"(confidence {hypothesis.confidence_score:.2f}, novelty {hypothesis.novelty_score:.2f}, testability {hypothesis.testability_score:.2f})"
         for hypothesis in hypotheses
     )
     lines.extend(["", "## Proposed Experiments"])
     lines.extend(
         f"- {hypothesis.title}: {hypothesis.proposed_experiment}"
+        for hypothesis in hypotheses
+    )
+    lines.extend(["", "## Simulation Notes"])
+    lines.extend(
+        f"- {hypothesis.title}: {hypothesis.simulation_summary or 'No simulation summary available.'}"
         for hypothesis in hypotheses
     )
     lines.extend(["", "## Limitations"])

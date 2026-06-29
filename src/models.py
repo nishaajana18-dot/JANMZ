@@ -93,6 +93,7 @@ class Hypothesis(BaseModel):
     id: str = Field(default_factory=new_id)
     project_id: str
     title: str
+    hypothesis_type: str = "general"
     research_question: str
     hypothesis: str
     rationale: str
@@ -104,6 +105,8 @@ class Hypothesis(BaseModel):
     novelty_score: float = 0.5
     testability_score: float = 0.5
     confidence_score: float = 0.3
+    assumptions: list[str] = Field(default_factory=list)
+    simulation_summary: str = ""
     human_review_status: Literal[
         "draft", "accepted", "rejected", "needs_revision"
     ] = "draft"

@@ -18,6 +18,7 @@ from src.models import (
     ResearchQuestion,
     Source,
 )
+from src.research_catalog import HYPOTHESIS_LENSES, QUESTION_LENSES, RESEARCH_AREAS
 from src.ranking import rank_hypotheses
 from src.retrieval import EvidenceIndex
 from src.synthesis import (
@@ -69,6 +70,8 @@ st.caption(
 
 with st.sidebar:
     st.subheader("Project Controls")
+    st.page_link("app.py", label="Main Workflow")
+    st.page_link("pages/1_Brainstorming_Studio.py", label="Brainstorming Studio")
     if st.button("Load Demo Project", use_container_width=True):
         load_demo_project()
         st.success("Loaded a synthetic demo project for exploration.")
@@ -86,8 +89,12 @@ st.header("Step 1: Research Intake")
 with st.form("research_intake"):
     col1, col2 = st.columns(2)
     with col1:
-        branch = st.text_input("Branch of science")
-        topic = st.text_input("Specific topic")
+        area_names = list(RESEARCH_AREAS.keys())
+        selected_area = st.selectbox("Research area", area_names)
+        branch = st.text_input("Branch of science", value=selected_area)
+        topic_options = RESEARCH_AREAS[selected_area]
+        suggested_topic = st.selectbox("Suggested topic menu", topic_options)
+        topic = st.text_input("Specific topic", value=suggested_topic)
         problem = st.text_area("Research problem")
         goal = st.text_area("What do you want to discover or solve?")
     with col2:
@@ -234,6 +241,9 @@ if st.button("Generate Research Questions"):
     st.rerun()
 
 if records["questions"]:
+    with st.expander("Question lenses used"):
+        for label, description in QUESTION_LENSES.items():
+            st.markdown(f"- **{label}:** {description}")
     for question in records["questions"]:
         st.markdown(f"- **{question.question}**")
         st.caption(
@@ -265,6 +275,7 @@ if records["hypotheses"]:
                 st.markdown(f"### {hypothesis.title}")
                 st.write(hypothesis.hypothesis)
                 st.caption(
+                    f"Type {hypothesis.hypothesis_type} | "
                     f"Confidence {hypothesis.confidence_score:.2f} | "
                     f"Novelty {hypothesis.novelty_score:.2f} | "
                     f"Testability {hypothesis.testability_score:.2f} | "
@@ -280,11 +291,19 @@ selected = db.get(Hypothesis, selected_id) if selected_id else None
 evidence_lookup = {item.id: item for item in records["evidence"]}
 if selected:
     st.subheader(selected.title)
+    st.caption(f"Hypothesis type: {selected.hypothesis_type}")
     st.write(selected.hypothesis)
     st.write(f"**Rationale:** {selected.rationale}")
     st.write(f"**Proposed experiment:** {selected.proposed_experiment}")
     st.write(f"**Predicted outcome:** {selected.predicted_outcome}")
     st.write(f"**Falsification criteria:** {selected.falsification_criteria}")
+    if selected.assumptions:
+        st.write("**Assumptions**")
+        for assumption in selected.assumptions:
+            st.markdown(f"- {assumption}")
+    if selected.simulation_summary:
+        st.write("**Synthetic simulation note:**")
+        st.caption(selected.simulation_summary)
     st.write("**Supporting evidence**")
     for evidence_id in selected.supporting_evidence_ids:
         evidence = evidence_lookup.get(evidence_id)

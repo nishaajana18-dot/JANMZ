@@ -54,7 +54,22 @@ The same synthesis layer creates:
 
 - research questions grounded in the intake and gap findings
 - testable hypotheses with supporting and conflicting evidence links
+- multiple distinct hypothesis lenses, including mechanistic, comparative, optimization, robustness, and translational
 - proposed experiments, predicted outcomes, and falsification criteria
+- synthetic simulation summaries for early planning support
+
+### Brainstorming Studio
+
+The multipage Streamlit setup adds a dedicated brainstorming page for early-stage ideation.
+
+It provides:
+
+- research area dropdowns
+- topic suggestion menus
+- question-framing lenses
+- lighter-input idea generation
+- optional live resource lookup from arXiv and Crossref
+- synthetic scenario simulations to compare directions
 
 ### Ranking
 
