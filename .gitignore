@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.streamlit/
+data/uploads/*
+data/processed/*
+data/vector_store/*
+!data/uploads/.gitkeep
+!data/processed/.gitkeep
+!data/vector_store/.gitkeep
+data/app.db
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
