@@ -4,10 +4,18 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+import streamlit as st
 from dotenv import load_dotenv
 
 
 load_dotenv()
+
+
+def _secret_value(name: str) -> str | None:
+    try:
+        return st.secrets.get(name, None)
+    except Exception:
+        return None
 
 
 @dataclass(frozen=True)
@@ -17,11 +25,15 @@ class Settings:
     upload_dir: Path = Path(os.getenv("UPLOAD_DIR", "data/uploads"))
     processed_dir: Path = Path(os.getenv("PROCESSED_DIR", "data/processed"))
     vector_dir: Path = Path(os.getenv("VECTOR_DIR", "data/vector_store"))
-    openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
+    openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or _secret_value(
+        "OPENAI_API_KEY"
+    )
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     openai_embedding_model: str = os.getenv(
         "OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"
     )
+    cheap_model: str = os.getenv("CHEAP_MODEL", "gpt-4o-mini")
+    reasoning_model: str = os.getenv("REASONING_MODEL", "gpt-4o")
 
     def ensure_directories(self) -> None:
         for path in (

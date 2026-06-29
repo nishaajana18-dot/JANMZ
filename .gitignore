@@ -2,6 +2,8 @@
 __pycache__/
 .pytest_cache/
 .streamlit/
+.streamlit/secrets.toml
+outputs/
 data/uploads/*
 data/processed/*
 data/vector_store/*
@@ -14,3 +16,4 @@ data/app.db
 *.pyd
 *.log
 .env
+.DS_Store

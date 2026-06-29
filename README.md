@@ -1,49 +1,40 @@
-# Research Hypothesis Builder
+# General AI Co-Scientist
 
-Research Hypothesis Builder is a simple local MVP for turning research intake, uploaded files, and notes into structured evidence, gap findings, research questions, and ranked testable hypotheses.
+General AI Co-Scientist is a local, domain-agnostic Streamlit app for turning scientific domains, papers, datasets, and notes into structured evidence, knowledge gaps, ranked hypotheses, critique, validation plans, and reports.
 
-The app is designed for nontechnical researchers and runs end to end even if no OpenAI API key is available. In fallback mode it uses local parsing, keyword-based evidence extraction, gap generation heuristics, and TF-IDF search over extracted evidence.
+The app is designed for nontechnical researchers and student demos. It runs end to end without an OpenAI API key by using local parsing, rule-based evidence extraction, dataset profiling, TF-IDF retrieval, deterministic gap detection, and cautious hypothesis generation.
 
-## What the app does
+## What The App Does
 
-- Collects a research intake brief.
+- Clarifies broad domains before hypothesis generation.
+- Guides users through a cascading science tree from field to branch, subfield, topic, and possible question.
+- Produces literature collection plans and extraction targets.
 - Stores uploaded PDF, TXT, CSV, XLSX, PNG, and JPG files locally.
-- Ingests files into extracted text or dataset summaries.
-- Converts parsed content into evidence records with provenance.
-- Lets you search evidence through a local index.
-- Identifies evidence gaps.
-- Generates research questions and testable hypotheses.
-- Produces more diverse hypothesis types such as mechanistic, comparative, optimization, robustness, and translational ideas.
-- Includes a Brainstorming Studio tab for early-stage idea exploration with lighter input needs.
-- Uses a cascading field selector that narrows from broad science field to branch, subfield, topic, and possible question.
-- Optionally pulls live inspiration links from arXiv and Crossref when internet access is available.
-- Adds clearly labeled synthetic simulation notes to help compare early research directions.
-- Ranks hypotheses and supports human review notes.
-- Exports the full project as JSON or Markdown.
-- Includes a synthetic demo mode for immediate testing.
+- Chunks long PDFs and stores extraction metadata.
+- Profiles datasets without assuming a medical or single-domain schema.
+- Recommends analyses such as correlation, regression, classification, clustering, dimensionality reduction, time-series analysis, simulation comparison, and ablation studies.
+- Extracts evidence with provenance.
+- Detects gaps across literature evidence, dataset variables, limitations, missing variables, and dataset patterns.
+- Generates cautious, falsifiable hypothesis cards.
+- Adds scientific critique, transparent ranking, and validation plans.
+- Exports JSON and Markdown reports.
 
 ## Installation
-
-1. Create and activate a virtual environment.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-```
-
-On Windows PowerShell use:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-2. Install dependencies.
-
-```bash
 pip install -r requirements.txt
 ```
 
-## Run the app
+On Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+## Run The App
 
 ```bash
 streamlit run app.py
@@ -54,55 +45,51 @@ The app opens as one tabbed workspace:
 - `Project Workflow`
 - `Brainstorming Studio`
 
-## Add an OpenAI API key
+## OpenAI API Key
 
-1. Copy `.env.example` to `.env`.
-2. Add your `OPENAI_API_KEY`.
+The current app works without an API key. API keys are read from environment variables or Streamlit secrets, never from source code.
 
-The current MVP is built to run without an API key. If you add one later, the codebase is structured so model-based extraction and embeddings can be layered in without changing the UI flow.
+For local development, copy `.env.example` to `.env` and set `OPENAI_API_KEY`.
 
-## How to use demo mode
+For Streamlit Cloud, set `OPENAI_API_KEY` in the app secrets panel. Do not commit `.streamlit/secrets.toml`.
 
-- Open the app.
-- Click `Load Demo Project` in the sidebar.
-- Explore synthetic evidence, gaps, questions, and hypotheses.
+## Pipeline
 
-The demo data is intentionally synthetic and clearly separated from uploaded material.
+1. Landing page explains the scientific workflow.
+2. Domain clarification suggests subfields, directions, search terms, dataset types, and clarifying questions.
+3. Literature planning suggests paper types and information to extract.
+4. Research intake creates a `ResearchProject`.
+5. File uploads create `Source` records under `data/uploads/`.
+6. Ingestion parses files and stores processed summaries under `data/processed/`.
+7. Dataset profiling summarizes columns, missingness, variable types, targets, predictors, relationships, and recommended analyses.
+8. Evidence extraction creates structured `Evidence` records with provenance.
+9. Retrieval builds a local TF-IDF evidence index.
+10. Gap detection compares evidence, dataset variables, limitations, and patterns.
+11. Question generation produces research questions.
+12. Hypothesis generation produces draft hypotheses.
+13. Scientific critique checks assumptions, controls, confounders, feasibility, and alternative explanations.
+14. Ranking scores hypotheses on scientific criteria.
+15. Export writes JSON and Markdown reports.
 
-## Pipeline overview
-
-1. Research intake creates a `ResearchProject`.
-2. File uploads create `Source` records and store files under `data/uploads/`.
-3. Ingestion parses each file and writes processed summaries under `data/processed/`.
-4. Evidence extraction creates structured `Evidence` records with provenance.
-5. Retrieval builds a local TF-IDF evidence index.
-6. Gap finding turns limitations and sparse evidence into `GapFinding` records.
-7. Question generation produces `ResearchQuestion` records.
-8. Hypothesis generation produces draft `Hypothesis` records.
-9. Brainstorming Studio can generate lighter-weight research ideas before file-heavy intake in the same app.
-10. Ranking orders hypotheses for review.
-11. Export writes JSON and Markdown reports.
-
-## Run tests
+## Tests
 
 ```bash
-pytest
+python -m pytest
 ```
 
-## Current limitations
+## Current Limitations
 
-- OpenAI-backed extraction and embeddings are not yet wired into the MVP flow.
-- Image understanding is metadata-only for now.
-- Evidence extraction is intentionally conservative and rule-based in fallback mode.
-- The app uses a single active project workflow to keep the first version simple.
-- Live resource lookup depends on internet availability and currently uses lightweight arXiv and Crossref queries rather than a full literature review pipeline.
-- Synthetic simulations are for planning support only and are not substitutes for empirical validation.
+- OpenAI-backed extraction and embeddings are scaffolded but not yet wired into the main flow.
+- Image understanding is metadata-only.
+- Evidence extraction is conservative and rule-based in fallback mode.
+- Live resource lookup depends on internet availability and uses lightweight arXiv and Crossref queries.
+- Synthetic simulations are planning support only, not empirical validation.
+- Markdown export is implemented first; PDF export is a TODO.
 
-## Future improvements
+## Future Improvements
 
-- Add OpenAI structured extraction and embeddings when an API key is present.
-- Support multiple active projects in the UI.
-- Add richer provenance display by page number or sheet name.
-- Improve hypothesis editing and comparison workflows.
-- Add stronger contradiction detection and experiment templates.
-- Add user controls for simulation assumptions and effect-size ranges.
+- Add model-backed extraction, synthesis, and critique behind the existing prompt templates.
+- Add PDF report export.
+- Support multiple active projects.
+- Add richer page-level PDF provenance.
+- Add user-adjustable simulation assumptions and effect-size ranges.

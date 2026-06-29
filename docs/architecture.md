@@ -2,108 +2,126 @@
 
 ## Goal
 
-This MVP supports a simple local workflow:
+This app supports a domain-agnostic scientific workflow:
 
-research intake + uploaded files + notes -> extracted evidence -> gaps -> research questions -> hypotheses -> export
+domain clarification + papers/data + evidence extraction + dataset profiling -> gaps -> hypotheses -> critique -> validation plan -> report
 
-## Components
+## Main App
 
-### Intake
+`app.py` is a single Streamlit application with two tabs:
 
-`app.py` collects the research brief and stores it as a `ResearchProject`. Intake uses a cascading science tree so the user chooses a broad field, then a branch, then a subfield, then branch-specific topics and research questions.
+- `Project Workflow`
+- `Brainstorming Studio`
 
-### Upload
+The first screen presents the app as `General AI Co-Scientist` and shows the workflow steps.
+
+## Intake And Domain Clarification
+
+`src/research_catalog.py` provides a broad science tree. Users select:
+
+- broad field
+- branch within field
+- more specific area
+- topic
+- possible question
+
+`src/scientific_workflow.py` adds domain clarification, feasible directions, search terms, possible dataset types, and clarifying questions.
+
+## Literature Planning
+
+`src/scientific_workflow.py` creates review paper search terms, recent paper terms, benchmark terms, paper types to collect, and information to extract.
+
+## Upload And Ingestion
 
 Uploaded files are written to `data/uploads/` and tracked as `Source` records in SQLite.
 
-### Ingestion
+`src/ingestion.py` handles:
 
-`src/ingestion.py` handles local parsing:
+- PDF text extraction with PyMuPDF
+- TXT reads
+- CSV/XLSX dataset summaries
+- PNG/JPG metadata
+- PDF text chunking and local chunk summaries
 
-- PDF with PyMuPDF
-- TXT with direct text reads
-- CSV/XLSX with pandas summaries
-- PNG/JPG with Pillow metadata
+Processed summaries are stored in `data/processed/` and SQLite as `ParsedContent`.
 
-Processed summaries are written to `data/processed/` and stored as `ParsedContent`.
+## Dataset Profiling
 
-### Evidence Extraction
+`src/dataset_profiler.py` profiles tabular data with:
 
-The MVP uses a conservative fallback extractor that:
+- shape and columns
+- missingness
+- numeric and categorical columns
+- candidate targets
+- candidate predictors
+- simple numeric relationships
+- recommended analyses
+- inferred dataset type
 
-- splits content into paragraphs
-- labels likely evidence types using keywords
-- attaches provenance to every evidence item
-- avoids inventing unsupported facts
+## Evidence
 
-### Retrieval
+`src/ingestion.py` creates fallback evidence records from uploaded text. `src/scientific_workflow.py` can also summarize evidence into a generic schema with entities, variables, methods, datasets or samples, key findings, limitations, contradictions, and open questions.
 
-`src/retrieval.py` builds a local TF-IDF index per project and supports evidence search from the UI.
+## Gap Detection
 
-### Gap Finding
+`src/synthesis.py` creates fallback stored `GapFinding` records.
 
-`src/synthesis.py` creates gap findings from:
+`src/scientific_workflow.py` creates a richer knowledge gap table by comparing:
 
-- explicit limitations
-- low-confidence evidence
-- variables that appear only once
+- literature findings
+- dataset variables
+- dataset patterns
+- contradictions
+- missing variables
+- limitations
+- under-tested mechanisms
 
-### Hypothesis Generation
+## Hypotheses
 
-The same synthesis layer creates:
+`src/synthesis.py` generates diverse hypothesis cards across mechanistic, comparative, optimization, robustness, and translational lenses.
 
-- research questions grounded in the intake and gap findings
-- testable hypotheses with supporting and conflicting evidence links
-- multiple distinct hypothesis lenses, including mechanistic, comparative, optimization, robustness, and translational
-- proposed experiments, predicted outcomes, and falsification criteria
-- synthetic simulation summaries for early planning support
+Each hypothesis includes:
 
-### Brainstorming Studio
+- statement
+- variables
+- literature support
+- dataset support note
+- assumptions
+- possible confounders
+- validation test
+- predicted outcome
+- falsification criteria
+- novelty, testability, and confidence scores
 
-The Streamlit app includes a Brainstorming Studio tab for early-stage ideation.
+## Critique, Ranking, And Validation
 
-It provides:
+`src/scientific_workflow.py` adds:
 
-- cascading field, branch, subfield, topic, and question dropdowns
-- question-framing lenses
-- lighter-input idea generation
-- optional live resource lookup from arXiv and Crossref
-- synthetic scenario simulations to compare directions
+- skeptical scientific critique
+- transparent 1-5 ranking criteria
+- validation plans for each hypothesis
 
-### Ranking
+## Prompt Templates And Model Routing
 
-`src/ranking.py` ranks hypotheses using:
+`src/prompts.py` defines prompt builders for future model-backed calls:
 
-- amount of supporting evidence
-- confidence
-- testability
-- novelty alignment with user preference
+- domain clarification
+- literature planning
+- evidence extraction
+- dataset analysis
+- gap detection
+- hypothesis generation
+- scientific critique
+- ranking
+- report drafting
 
-### Export
+It also centralizes model routing so cheaper models can handle planning/formatting while stronger reasoning models handle gaps, hypotheses, and critique.
+
+## Export
 
 `src/export.py` writes:
 
-- JSON snapshots for structured reuse
-- Markdown reports for easy reading and sharing
+- JSON snapshots
+- Markdown reports with project inputs, clarification, literature plan, dataset profile, evidence, gaps, hypotheses, critique, validation plan, limitations, and next steps
 
-## Storage Model
-
-SQLite stores JSON payloads for the main record types:
-
-- `ResearchProject`
-- `Source`
-- `ParsedContent`
-- `Evidence`
-- `GapFinding`
-- `ResearchQuestion`
-- `Hypothesis`
-
-This keeps the schema flexible for a first MVP while still using structured storage.
-
-## Design Principles
-
-- Local-first
-- End-to-end without external services
-- Friendly nontechnical workflow
-- Clear provenance for uploaded evidence
-- Simple code paths over heavy abstraction
+PDF export is left as a future enhancement.

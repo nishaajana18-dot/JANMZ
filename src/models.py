@@ -19,6 +19,15 @@ class ResearchProject(BaseModel):
     goal: str
     available_data: str
     constraints: str
+    project_mode: Literal[
+        "Literature only", "Dataset only", "Literature + dataset"
+    ] = "Literature + dataset"
+    user_level: Literal["Beginner", "Undergraduate", "Graduate", "Researcher"] = (
+        "Graduate"
+    )
+    time_constraint: Literal["Few hours", "One day", "One week", "Longer project"] = (
+        "One week"
+    )
     novelty_level: Literal["conservative", "balanced", "speculative"] = "balanced"
     output_style: Literal[
         "concise", "detailed", "grant-style", "experimental-plan style"
@@ -99,6 +108,10 @@ class Hypothesis(BaseModel):
     rationale: str
     supporting_evidence_ids: list[str] = Field(default_factory=list)
     conflicting_evidence_ids: list[str] = Field(default_factory=list)
+    variables_involved: list[str] = Field(default_factory=list)
+    literature_support: str = ""
+    dataset_support: str = ""
+    possible_confounders: list[str] = Field(default_factory=list)
     proposed_experiment: str
     predicted_outcome: str
     falsification_criteria: str

@@ -8,6 +8,7 @@ import pandas as pd
 from PIL import Image
 
 from src.config import settings
+from src.dataset_profiler import profile_dataframe, profile_to_markdown
 from src.models import Evidence, ParsedContent, Source
 
 try:
@@ -29,7 +30,14 @@ def parse_source(project_id: str, source: Source) -> ParsedContent:
 
     if suffix == ".pdf":
         text = extract_pdf_text(raw_path)
-        metadata = {"pages": count_pdf_pages(raw_path)}
+        chunks = chunk_text(text)
+        metadata = {
+            "pages": count_pdf_pages(raw_path),
+            "chunks": len(chunks),
+            "chunk_summaries": summarize_chunks_fallback(chunks),
+        }
+        if metadata["chunk_summaries"]:
+            text = text + "\n\nChunk summaries:\n" + "\n".join(metadata["chunk_summaries"])
     elif suffix == ".txt":
         text = raw_path.read_text(encoding="utf-8", errors="ignore")
         metadata = {"characters": len(text)}
@@ -71,18 +79,19 @@ def count_pdf_pages(path: Path) -> int:
 
 def summarize_tabular_file(path: Path) -> tuple[str, dict]:
     df = pd.read_csv(path) if path.suffix.lower() == ".csv" else pd.read_excel(path)
-    summary = {
-        "rows": int(df.shape[0]),
-        "columns": list(df.columns.astype(str)),
-        "missing_values": df.isna().sum().to_dict(),
-        "numeric_summary": df.describe(include="all").fillna("").to_dict(),
-    }
+    summary = profile_dataframe(df)
+    summary["numeric_summary"] = df.describe(include="all").fillna("").to_dict()
     lines = [
         f"Dataset summary for {path.name}",
-        f"Rows: {summary['rows']}",
+        f"Rows: {summary['shape']['rows']}",
         f"Columns: {', '.join(summary['columns']) or 'None'}",
         f"Missing values: {summary['missing_values']}",
+        f"Inferred dataset type: {summary['inferred_dataset_type']}",
+        f"Candidate targets: {', '.join(summary['candidate_target_columns']) or 'None'}",
+        f"Candidate predictors: {', '.join(summary['candidate_predictor_columns']) or 'None'}",
+        f"Recommended analyses: {', '.join(summary['recommended_analyses'])}",
         f"Descriptive statistics: {summary['numeric_summary']}",
+        profile_to_markdown(summary, title=path.name),
     ]
     return "\n".join(lines), summary
 
@@ -95,6 +104,30 @@ def summarize_image(path: Path) -> tuple[str, dict]:
         "Advanced image understanding is not enabled in this MVP."
     )
     return text, metadata
+
+
+def chunk_text(text: str, chunk_size: int = 3500, overlap: int = 250) -> list[str]:
+    clean_text = text.strip()
+    if not clean_text:
+        return []
+    chunks: list[str] = []
+    start = 0
+    while start < len(clean_text):
+        end = min(len(clean_text), start + chunk_size)
+        chunks.append(clean_text[start:end])
+        if end == len(clean_text):
+            break
+        start = max(0, end - overlap)
+    return chunks
+
+
+def summarize_chunks_fallback(chunks: list[str]) -> list[str]:
+    summaries: list[str] = []
+    for index, chunk in enumerate(chunks[:12], start=1):
+        sentences = re.split(r"(?<=[.!?])\s+", chunk.strip())
+        first_sentence = next((sentence for sentence in sentences if sentence), "")
+        summaries.append(f"Chunk {index}: {first_sentence[:280]}")
+    return summaries
 
 
 KEYWORD_MAP = {

@@ -168,6 +168,7 @@ def generate_hypotheses_fallback(
             f"The variables {variable_text} can be measured consistently.",
             "The proposed comparison can be executed with the stated constraints.",
         ]
+        variables = [value.strip() for value in variable_text.split(",") if value.strip()]
 
         hypotheses.append(
             Hypothesis(
@@ -179,6 +180,17 @@ def generate_hypotheses_fallback(
                 rationale=rationale_text,
                 supporting_evidence_ids=supporting_ids,
                 conflicting_evidence_ids=conflicting_ids,
+                variables_involved=variables,
+                literature_support=(
+                    f"Supported by {len(supporting_ids)} uploaded evidence item(s); inspect provenance before treating as strong support."
+                ),
+                dataset_support="Dataset support depends on whether uploaded tables contain the listed variables.",
+                possible_confounders=[
+                    "measurement bias",
+                    "sample selection",
+                    "unmeasured covariates",
+                    "domain-specific boundary conditions",
+                ],
                 proposed_experiment=experiment_text,
                 predicted_outcome=predicted_outcome,
                 falsification_criteria=falsification,

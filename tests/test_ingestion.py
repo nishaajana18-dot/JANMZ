@@ -22,4 +22,5 @@ def test_summarize_tabular_file(tmp_path: Path) -> None:
     csv_path.write_text("a,b\n1,2\n3,\n", encoding="utf-8")
     text, metadata = summarize_tabular_file(csv_path)
     assert "Rows: 2" in text
-    assert metadata["rows"] == 2
+    assert metadata["shape"]["rows"] == 2
+    assert "recommended_analyses" in metadata

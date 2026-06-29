@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 from src.config import settings
@@ -31,6 +32,16 @@ from src.research_catalog import (
 )
 from src.resources import fetch_research_resources
 from src.retrieval import EvidenceIndex
+from src.prompts import MODEL_ROUTING
+from src.scientific_workflow import (
+    build_validation_plan,
+    clarify_domain,
+    critique_hypotheses,
+    detect_knowledge_gaps,
+    generic_evidence_summary,
+    plan_literature,
+    score_hypotheses,
+)
 from src.synthesis import (
     brainstorm_ideas,
     generate_gaps_fallback,
@@ -71,6 +82,44 @@ def project_records(project: ResearchProject) -> dict[str, list]:
         "questions": db.list_all(ResearchQuestion, project.id),
         "hypotheses": db.list_all(Hypothesis, project.id),
     }
+
+
+def dataset_profiles(records: dict[str, list]) -> list[dict]:
+    profiles = []
+    for parsed in records["parsed_contents"]:
+        if parsed.metadata.get("shape"):
+            profiles.append(parsed.metadata)
+    return profiles
+
+
+def render_landing() -> None:
+    st.title("General AI Co-Scientist")
+    st.caption(
+        "A domain-agnostic assistant for turning scientific papers and datasets into testable hypotheses."
+    )
+    steps = [
+        "Clarify domain",
+        "Collect papers/data",
+        "Extract evidence",
+        "Analyze dataset",
+        "Find gaps",
+        "Generate hypotheses",
+        "Critique and rank",
+        "Export report",
+    ]
+    cols = st.columns(4)
+    for index, step in enumerate(steps, start=1):
+        with cols[(index - 1) % 4]:
+            st.metric(f"Step {index}", step)
+
+    with st.expander("Model routing and token efficiency"):
+        st.write(
+            "The app is structured to use cheaper models for clarification, planning, formatting, ranking, and reports, while reserving stronger reasoning models for gaps, hypotheses, and critique."
+        )
+        st.dataframe(
+            [{"Task": key, "Model": value} for key, value in MODEL_ROUTING.items()],
+            use_container_width=True,
+        )
 
 
 def science_tree_selector(prefix: str) -> tuple[str, str, str, str, str]:
@@ -114,6 +163,15 @@ def render_project_workflow() -> None:
         branch, discipline, subfield, suggested_topic, suggested_problem = (
             science_tree_selector("intake")
         )
+        broad_domain = st.text_input(
+            "Broad scientific domain",
+            value=branch,
+            help="Examples: physics, biology, chemistry, engineering, climate science.",
+        )
+        optional_subfield = st.text_input(
+            "Optional subfield",
+            value=f"{discipline} / {subfield}",
+        )
         topic = st.text_input(
             "Edit or narrow the specific topic",
             value=suggested_topic,
@@ -126,6 +184,21 @@ def render_project_workflow() -> None:
         )
         goal = st.text_area("What do you want to discover or solve?")
     with col2:
+        project_mode = st.selectbox(
+            "Project mode",
+            ["Literature only", "Dataset only", "Literature + dataset"],
+            index=2,
+        )
+        user_level = st.selectbox(
+            "User level",
+            ["Beginner", "Undergraduate", "Graduate", "Researcher"],
+            index=2,
+        )
+        time_constraint = st.selectbox(
+            "Time constraint",
+            ["Few hours", "One day", "One week", "Longer project"],
+            index=2,
+        )
         data = st.text_area("Available data")
         constraints = st.text_area("Constraints")
         novelty = st.selectbox(
@@ -137,14 +210,43 @@ def render_project_workflow() -> None:
             ["concise", "detailed", "grant-style", "experimental-plan style"],
         )
 
+    clarification = clarify_domain(broad_domain, optional_subfield, goal)
+    literature_plan = plan_literature(broad_domain, optional_subfield, goal)
+    with st.expander("Domain clarification", expanded=clarification["needs_clarification"]):
+        if clarification["needs_clarification"]:
+            st.warning(
+                "This domain is still broad. Review the suggested subfields and answer the clarifying questions before generating hypotheses."
+            )
+        st.write("Suggested subfields")
+        st.write(clarification["suggested_subfields"])
+        st.write("Feasible research directions")
+        st.write(clarification["feasible_research_directions"])
+        st.write("Recommended search terms")
+        st.write(clarification["recommended_search_terms"])
+        st.write("Possible dataset types")
+        st.write(clarification["possible_dataset_types"])
+        st.write("Questions to answer before continuing")
+        st.write(clarification["clarifying_questions"])
+
+    with st.expander("Literature review plan"):
+        for label, values in literature_plan.items():
+            st.markdown(f"**{label.replace('_', ' ').title()}**")
+            st.write(values)
+
     if st.button("Save Research Project", type="primary"):
+        if not broad_domain.strip() or not goal.strip():
+            st.error("Please enter at least a broad scientific domain and research goal before saving.")
+            return
         project = ResearchProject(
-            branch_of_science=path_label(branch, discipline, subfield),
+            branch_of_science=f"{broad_domain} ({path_label(branch, discipline, subfield)})",
             specific_topic=topic,
             research_problem=problem,
             goal=goal,
             available_data=data,
             constraints=constraints,
+            project_mode=project_mode,
+            user_level=user_level,
+            time_constraint=time_constraint,
             novelty_level=novelty,
             output_style=output_style,
         )
@@ -197,17 +299,24 @@ def render_project_workflow() -> None:
     if st.button("Ingest Files"):
         sources = db.list_all(Source, project.id)
         all_evidence: list[Evidence] = []
-        for source in sources:
-            if source.raw_path.startswith("demo://"):
-                continue
-            parsed = parse_source(project.id, source)
-            db.upsert(parsed)
-            evidence = extract_evidence_fallback(project.id, source, parsed.summary_text)
-            all_evidence.extend(evidence)
-            db.bulk_upsert(evidence)
-            db.upsert(source.model_copy(update={"processed_status": "processed"}))
+        with st.spinner("Parsing files, extracting evidence, and rebuilding the local index..."):
+            for source in sources:
+                if source.raw_path.startswith("demo://"):
+                    continue
+                try:
+                    parsed = parse_source(project.id, source)
+                    db.upsert(parsed)
+                    evidence = extract_evidence_fallback(
+                        project.id, source, parsed.summary_text
+                    )
+                    all_evidence.extend(evidence)
+                    db.bulk_upsert(evidence)
+                    db.upsert(source.model_copy(update={"processed_status": "processed"}))
+                except Exception as exc:
+                    db.upsert(source.model_copy(update={"processed_status": "failed"}))
+                    st.error(f"Could not ingest {source.filename}: {exc}")
 
-        EvidenceIndex(project.id).build(db.list_all(Evidence, project.id))
+            EvidenceIndex(project.id).build(db.list_all(Evidence, project.id))
         st.success(f"Ingestion complete. Extracted {len(all_evidence)} evidence items.")
         st.rerun()
 
@@ -218,6 +327,32 @@ def render_project_workflow() -> None:
             for item in records["parsed_contents"]:
                 st.markdown(f"**Source ID:** {item.source_id}")
                 st.write(item.summary_text[:1000])
+
+    profiles = dataset_profiles(records)
+    if profiles:
+        st.subheader("Dataset Profiles")
+        for index, profile in enumerate(profiles, start=1):
+            with st.expander(f"Dataset {index}: {profile['shape']['rows']} rows x {profile['shape']['columns']} columns"):
+                st.write(f"Inferred type: {profile['inferred_dataset_type']}")
+                st.write(f"Candidate targets: {', '.join(profile['candidate_target_columns']) or 'None'}")
+                st.write(f"Candidate predictors: {', '.join(profile['candidate_predictor_columns']) or 'None'}")
+                st.write(f"Recommended analyses: {', '.join(profile['recommended_analyses'])}")
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {
+                                "Column": column,
+                                "Type": profile["dtypes"].get(column, ""),
+                                "Missing": profile["missing_values"].get(column, 0),
+                            }
+                            for column in profile["columns"]
+                        ]
+                    ),
+                    use_container_width=True,
+                )
+                if profile["simple_relationships"]:
+                    st.write("Strongest simple relationships")
+                    st.dataframe(profile["simple_relationships"], use_container_width=True)
 
     if records["evidence"]:
         st.subheader("Extracted Evidence")
@@ -242,12 +377,22 @@ def render_project_workflow() -> None:
             else:
                 st.info("No indexed evidence matched the current search.")
 
+        with st.expander("Generic Evidence Schema Summary"):
+            summary = generic_evidence_summary(project, records["evidence"])
+            st.json(summary)
+
     st.header("Identify Gaps")
     if st.button("Find Gaps"):
-        gaps = generate_gaps_fallback(project, records["evidence"])
-        db.bulk_upsert(gaps)
+        with st.spinner("Comparing evidence, dataset variables, limitations, and missing information..."):
+            gaps = generate_gaps_fallback(project, records["evidence"])
+            db.bulk_upsert(gaps)
         st.success(f"Created {len(gaps)} gap findings.")
         st.rerun()
+
+    structured_gaps = detect_knowledge_gaps(project, records["evidence"], profiles)
+    if structured_gaps:
+        st.subheader("Knowledge Gap Table")
+        st.dataframe(structured_gaps, use_container_width=True)
 
     if records["gaps"]:
         st.dataframe(
@@ -317,6 +462,18 @@ def render_project_workflow() -> None:
                     if st.button("View Details", key=f"view_{hypothesis.id}"):
                         st.session_state["selected_hypothesis_id"] = hypothesis.id
 
+        st.subheader("Scientific Ranking Table")
+        ranking_rows = score_hypotheses(records["hypotheses"], profiles)
+        st.dataframe(ranking_rows, use_container_width=True)
+
+        st.subheader("Scientific Critique")
+        critique_rows = critique_hypotheses(records["hypotheses"], profiles)
+        st.dataframe(critique_rows, use_container_width=True)
+
+        st.subheader("Validation Plan")
+        validation_rows = build_validation_plan(records["hypotheses"])
+        st.dataframe(validation_rows, use_container_width=True)
+
     render_hypothesis_detail(project, records)
     render_export(project, records)
 
@@ -331,6 +488,10 @@ def render_hypothesis_detail(project: ResearchProject, records: dict[str, list])
         st.caption(f"Hypothesis type: {selected.hypothesis_type}")
         st.write(selected.hypothesis)
         st.write(f"**Rationale:** {selected.rationale}")
+        st.write(f"**Variables involved:** {', '.join(selected.variables_involved) or 'Needs review'}")
+        st.write(f"**Literature support:** {selected.literature_support or 'Needs review'}")
+        st.write(f"**Dataset support:** {selected.dataset_support or 'No dataset support identified yet.'}")
+        st.write(f"**Possible confounders:** {', '.join(selected.possible_confounders) or 'Needs review'}")
         st.write(f"**Proposed experiment:** {selected.proposed_experiment}")
         st.write(f"**Predicted outcome:** {selected.predicted_outcome}")
         st.write(f"**Falsification criteria:** {selected.falsification_criteria}")
@@ -387,6 +548,17 @@ def render_export(project: ResearchProject, records: dict[str, list]) -> None:
     export_dir = settings.processed_dir
     json_path = export_dir / f"{project.id}_report.json"
     md_path = export_dir / f"{project.id}_report.md"
+    profiles = dataset_profiles(records)
+    structured_gaps = detect_knowledge_gaps(project, records["evidence"], profiles)
+    critique = critique_hypotheses(records["hypotheses"], profiles)
+    ranking = score_hypotheses(records["hypotheses"], profiles)
+    validation_plan = build_validation_plan(records["hypotheses"])
+    clarification = clarify_domain(
+        project.branch_of_science, project.specific_topic, project.goal
+    )
+    literature_plan = plan_literature(
+        project.branch_of_science, project.specific_topic, project.goal
+    )
     export_json(
         json_path,
         project,
@@ -395,6 +567,13 @@ def render_export(project: ResearchProject, records: dict[str, list]) -> None:
         records["gaps"],
         records["questions"],
         records["hypotheses"],
+        domain_clarification=clarification,
+        literature_plan=literature_plan,
+        dataset_profiles=profiles,
+        structured_gaps=structured_gaps,
+        critique=critique,
+        ranking=ranking,
+        validation_plan=validation_plan,
     )
     export_markdown(
         md_path,
@@ -500,11 +679,8 @@ def render_brainstorming_studio() -> None:
             st.caption("Internet resource lookup was skipped for this run.")
 
 
-st.set_page_config(page_title="Research Hypothesis Builder", layout="wide")
-st.title("Research Hypothesis Builder")
-st.caption(
-    "A local workspace for shaping research ideas, evidence, gaps, questions, and testable hypotheses."
-)
+st.set_page_config(page_title="General AI Co-Scientist", layout="wide")
+render_landing()
 
 with st.sidebar:
     st.subheader("Project Controls")
