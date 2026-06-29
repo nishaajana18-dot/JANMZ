@@ -70,8 +70,7 @@ st.caption(
 
 with st.sidebar:
     st.subheader("Project Controls")
-    st.page_link("app.py", label="Main Workflow")
-    st.page_link("pages/1_Brainstorming_Studio.py", label="Brainstorming Studio")
+    st.divider()
     if st.button("Load Demo Project", use_container_width=True):
         load_demo_project()
         st.success("Loaded a synthetic demo project for exploration.")
