@@ -3,17 +3,24 @@ from __future__ import annotations
 from src.config import settings
 
 
-MODEL_ROUTING = {
-    "domain_clarification": settings.cheap_model,
-    "literature_planning": settings.cheap_model,
-    "evidence_extraction": settings.cheap_model,
-    "dataset_analysis": settings.cheap_model,
-    "gap_detection": settings.reasoning_model,
-    "hypothesis_generation": settings.reasoning_model,
-    "scientific_critique": settings.reasoning_model,
-    "ranking": settings.cheap_model,
-    "report": settings.cheap_model,
-}
+def get_model_routing():
+    """Get model routing configuration dynamically."""
+    cheap = getattr(settings, 'cheap_model', 'gpt-4o-mini')
+    reasoning = getattr(settings, 'reasoning_model', 'gpt-4o')
+    return {
+        "domain_clarification": cheap,
+        "literature_planning": cheap,
+        "evidence_extraction": cheap,
+        "dataset_analysis": cheap,
+        "gap_detection": reasoning,
+        "hypothesis_generation": reasoning,
+        "scientific_critique": reasoning,
+        "ranking": cheap,
+        "report": cheap,
+    }
+
+
+MODEL_ROUTING = get_model_routing()
 
 
 def build_domain_clarification_prompt(domain: str, goal: str) -> str:
